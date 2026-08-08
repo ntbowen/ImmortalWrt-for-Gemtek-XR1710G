@@ -194,7 +194,7 @@ Signed-off-by: ZagWrt <zagwrt@localhost>
 +check_buttons=if button reset ; then run boot_tftp ; fi
 --- /dev/null
 +++ b/dts/upstream/src/arm64/airoha/an7581-gemtek-xg2010g-ubi.dts
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,154 @@
 +// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 +/dts-v1/;
 +
