@@ -165,7 +165,7 @@ define Device/gemtek_xg2010g-ubi
   DEVICE_PACKAGES := -airoha-en7581-npu-firmware \
 		    -kmod-input-gpio-keys-polled -kmod-leds-pwm \
 		    -kmod-pwm-airoha \
-		    apk-mbedtls ethtool-full fitblk \
+		    apk-openssl ethtool-full fitblk \
 		    kmod-i2c-an7581 kmod-hwmon-nct7802 \
 		    kmod-phy-realtek \
 		    rtl826x-firmware \
