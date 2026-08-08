@@ -24,6 +24,14 @@ define U-Boot/an7581_gemtek_w1700k
   UBOOT_IMAGE:=u-boot.bin
 endef
 
+define U-Boot/an7581_gemtek_xg2010g
+  NAME:=Gemtek XG2010G (chainloader)
+  UBOOT_CONFIG:=an7581_gemtek_xg2010g
+  BUILD_DEVICES:=gemtek_xg2010g-ubi
+  BUILD_SUBTARGET:=an7581
+  UBOOT_IMAGE:=u-boot.bin
+endef
+
 define U-Boot/an7581_nokia_valyrian
   NAME:=Nokia Valyrian
   UBOOT_CONFIG:=an7581_nokia_valyrian
@@ -76,6 +84,7 @@ endef
 
 UBOOT_TARGETS := \
 	an7581_gemtek_w1700k \
+	an7581_gemtek_xg2010g \
 	an7581_nokia_valyrian \
 	an7581_nokia_xg-040g-md \
 	an7581_rfb \

@@ -148,6 +148,49 @@ define Device/gemtek_xr1710g-ubi
 endef
 TARGET_DEVICES += gemtek_xr1710g-ubi
 
+define Device/gemtek_xg2010g-ubi
+  DEVICE_VENDOR := Gemtek
+  DEVICE_MODEL := XG2010G
+  DEVICE_VARIANT := UBI
+  DEVICE_ALT0_VENDOR := Brightspeed
+  DEVICE_ALT0_MODEL := XG2010G
+  DEVICE_ALT0_VARIANT := UBI
+  SUPPORTED_DEVICES := gemtek,xg2010g-ubi
+  DEVICE_DTS := an7581-xg2010g-ubi
+  DEVICE_COMPAT_VERSION := 2.0
+  DEVICE_COMPAT_MESSAGE := The XG2010G BMT/BBT boundary has been changed. Install \
+       an XG2010G chainloader/U-Boot using the new layout first, then boot \
+       recovery/initramfs and fully recreate UBI. A normal sysupgrade that \
+       preserves configuration is unsafe.
+  DEVICE_PACKAGES := -airoha-en7581-npu-firmware \
+		    -kmod-input-gpio-keys-polled -kmod-leds-pwm \
+		    -kmod-pwm-airoha \
+		    apk-mbedtls ethtool-full fitblk \
+		    kmod-i2c-an7581 kmod-hwmon-nct7802 \
+		    kmod-phy-realtek \
+		    rtl826x-firmware \
+		    luci \
+		    luci-app-firewall luci-app-package-manager \
+		    luci-mod-admin-full \
+		    luci-proto-ppp luci-theme-bootstrap \
+		    uhttpd uhttpd-mod-ubus
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  UBOOTENV_IN_UBI := 1
+  KERNEL_IN_UBI := 1
+  KERNEL := kernel-bin | gzip
+  KERNEL_INITRAMFS := kernel-bin | lzma | \
+	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd | pad-to 128k
+  KERNEL_INITRAMFS_SUFFIX := -recovery.itb
+  IMAGES := sysupgrade.itb
+  IMAGE/sysupgrade.itb := append-kernel | fit gzip $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb external-static-with-rootfs | append-metadata
+  ARTIFACTS := chainload-uboot.itb
+  ARTIFACT/chainload-uboot.itb := an7581-chainloader gemtek_xg2010g
+  SOC := an7581
+endef
+TARGET_DEVICES += gemtek_xg2010g-ubi
+
 define Device/nokia_valyrian
   DEVICE_VENDOR := Nokia
   DEVICE_MODEL := Valyrian

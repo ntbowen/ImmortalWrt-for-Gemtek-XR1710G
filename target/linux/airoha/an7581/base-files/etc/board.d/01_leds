@@ -25,6 +25,10 @@ gemtek,xr1710g-ubi)
 	ucidef_set_led_netdev "lan4-amber" "lan4" "lan4:amber" "lan4" "link_10 link_100"
 	ucidef_set_led_netdev "lan4-green" "lan4" "lan4:green" "lan4" "link_1000 tx rx"
 	;;
+gemtek,xg2010g-ubi)
+	ucidef_set_led_netdev "wan" "WAN" "green:wan-online" "wan"
+	ucidef_set_led_netdev "lan4" "LAN4" "green:lan" "lan4" "link"
+	;;
 esac
 
 board_config_flush
