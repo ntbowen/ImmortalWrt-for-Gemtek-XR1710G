@@ -17,7 +17,7 @@ nokia,xg-040g-md-ubi)
 	ubootenv_add_ubi_default
 	;;
 gemtek,xg2010g-ubi)
-	ubootenv_add_mtd "uenv" "0x0" "0x200000" "0x20000" "16"
+	ubootenv_add_ubi_default
 	;;
 nokia,xg-040g-md)
 	ubootenv_add_mtd "u-boot-env" "0x1c000" "0x4000" "0x4000"
