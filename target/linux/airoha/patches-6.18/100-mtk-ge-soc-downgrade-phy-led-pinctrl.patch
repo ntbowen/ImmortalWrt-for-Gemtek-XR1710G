@@ -1,14 +1,14 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: OpenWrt Builder <builder@openwrt.org>
-Date: Sat, 9 Aug 2026 00:00:00 +0000
-Subject: [PATCH] net: phy: mediatek: downgrade missing PHY LED pinctrl to
- warning
+Date: Sun, 10 Aug 2026 00:00:00 +0000
+Subject: [PATCH] net: phy: mediatek: silence PHY LED pinctrl warning when not
+ present
 
 The Airoha AN7581 internal GbE PHY on the Gemtek XG2010G does not
 connect the PHY LED controller to panel LEDs (they are driven via GPIO
 LEDs).  In that case the optional "gbe-led" pinctrl state is not present
-and the current driver logs an error.  Downgrade this to a warning since
-the PHY continues to work normally.
+and devm_pinctrl_get_select() returns -ENODEV.  Only log a warning for
+real failures, not for the missing state.
 
 ---
  drivers/net/phy/mediatek/mtk-ge-soc.c | 4 ++--
@@ -16,21 +16,21 @@ the PHY continues to work normally.
 
 --- a/drivers/net/phy/mediatek/mtk-ge-soc.c
 +++ b/drivers/net/phy/mediatek/mtk-ge-soc.c
-@@ -984,7 +984,7 @@ static int mt7988_phy_probe(struct phy_de
+@@ -1313,7 +1313,7 @@
+ 
  	/* Only now setup pinctrl to avoid bogus blinking */
  	pinctrl = devm_pinctrl_get_select(&phydev->mdio.dev, "gbe-led");
- 	if (IS_ERR(pinctrl))
--		dev_err(&phydev->mdio.bus->dev,
-+		dev_warn(&phydev->mdio.bus->dev,
+-	if (IS_ERR(pinctrl))
++	if (IS_ERR(pinctrl) && PTR_ERR(pinctrl) != -ENODEV)
+ 		dev_err(&phydev->mdio.bus->dev,
  			"Failed to setup PHY LED pinctrl\n");
  
- 	return 0;
-@@ -1096,7 +1096,7 @@ static int mt7981_phy_probe(struct phy_
+@@ -1425,7 +1425,7 @@
+ 
  	/* Toggle pinctrl to enable PHY LED */
  	pinctrl = devm_pinctrl_get_select(&phydev->mdio.dev, "gbe-led");
- 	if (IS_ERR(pinctrl))
--		dev_err(&phydev->mdio.bus->dev,
-+		dev_warn(&phydev->mdio.bus->dev,
+-	if (IS_ERR(pinctrl))
++	if (IS_ERR(pinctrl) && PTR_ERR(pinctrl) != -ENODEV)
+ 		dev_err(&phydev->mdio.bus->dev,
  			"Failed to setup PHY LED pinctrl\n");
  
- 	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
