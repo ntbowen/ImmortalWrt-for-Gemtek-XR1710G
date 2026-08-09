@@ -176,12 +176,23 @@ function updateBandChip(band, stats) {
 	if (re) { var rp2 = retryPct(stats); re.textContent = rp2; }
 }
 
+/* ── Board-specific port labels ── */
+function getPortLabels(board) {
+	var isXg2010g = board && board.indexOf('xg2010g') >= 0;
+	return {
+		gdm1: isXg2010g ? 'Internal Switch (1G LAN4)' : 'Internal Switch (1G LAN3/4)',
+		gdm2: isXg2010g ? 'WAN (XGSPON 10G)' : 'WAN (USXGMII 10G)',
+		gdm4: isXg2010g ? 'LAN1 (USXGMII 10G)' : 'LAN2 (USXGMII 10G)'
+	};
+}
+
 /* ── Frame Engine Diagram (with WiFi bands, NPU, PPE flows) ── */
 function renderFeDiagram(fe, ti, st) {
 	if (!fe || fe.error) return E('div', { 'class': 'soc-muted' }, 'devmem not available on this build');
 	ti = ti || {}; st = st || {};
 
 	var ports = Array.isArray(fe.pse_ports) ? fe.pse_ports : [];
+	var labels = getPortLabels(st.board);
 
 	// Helper: GDM card
 	function gdmCard(key, name, label, color, pse) {
@@ -311,9 +322,9 @@ function renderFeDiagram(fe, ti, st) {
 		]),
 		// Row 1: GDM ports
 		E('div', { 'class': 'soc-gdm-grid' }, [
-			gdmCard('gdm1', 'GDM1', 'Internal Switch (1G LAN3/4)', '#ff9800', 'P1'),
-			gdmCard('gdm2', 'GDM2', 'WAN (USXGMII 10G)', '#4caf50', 'P2'),
-			gdmCard('gdm4', 'GDM4', 'LAN2 (USXGMII 10G)', '#4caf50', 'P9')
+			gdmCard('gdm1', 'GDM1', labels.gdm1, '#ff9800', 'P1'),
+			gdmCard('gdm2', 'GDM2', labels.gdm2, '#4caf50', 'P2'),
+			gdmCard('gdm4', 'GDM4', labels.gdm4, '#4caf50', 'P9')
 		]),
 		// Row 2: CDM1/CDM2 (CPU) + CDM4/WiFi
 		E('div', { 'style': 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px' }, [

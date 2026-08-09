@@ -332,6 +332,14 @@
 	reg-names = "chip-scu", "mcucfg";
 };
 
+/* Enable the NPU for PPE offload.  No WiFi is present, so the generic
+ * EN7581 NPU firmware is used. */
+&npu {
+	status = "okay";
+	firmware-name = "airoha/en7581_npu_rv32.bin",
+			"airoha/en7581_npu_data.bin";
+};
+
 &uart2 {
 	status = "disabled";
 };

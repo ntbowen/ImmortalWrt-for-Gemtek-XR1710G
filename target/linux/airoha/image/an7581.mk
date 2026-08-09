@@ -162,7 +162,7 @@ define Device/gemtek_xg2010g-ubi
        an XG2010G chainloader/U-Boot using the new layout first, then boot \
        recovery/initramfs and fully recreate UBI. A normal sysupgrade that \
        preserves configuration is unsafe.
-  DEVICE_PACKAGES := -airoha-en7581-npu-firmware \
+  DEVICE_PACKAGES := airoha-en7581-npu-firmware \
 		    -kmod-input-gpio-keys-polled -kmod-leds-pwm \
 		    -kmod-pwm-airoha \
 		    apk-openssl ethtool-full fitblk \
