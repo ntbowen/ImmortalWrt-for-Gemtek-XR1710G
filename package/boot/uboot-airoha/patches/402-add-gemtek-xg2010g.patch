@@ -32,13 +32,12 @@ Signed-off-by: ZagWrt <zagwrt@localhost>
 
 --- /dev/null
 +++ b/configs/an7581_gemtek_xg2010g_defconfig
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,129 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_AIROHA=y
 +CONFIG_POSITION_INDEPENDENT=y
-+CONFIG_BOOTDELAY=3
-+CONFIG_AUTOBOOT_KEYED=y
-+CONFIG_AUTOBOOT_MENU_SHOW=y
++CONFIG_BOOTDELAY=5
++# CONFIG_AUTOBOOT_KEYED is not set
 +CONFIG_TARGET_AN7581=y
 +CONFIG_TEXT_BASE=0x81e00000
 +CONFIG_SYS_MALLOC_F_LEN=0x4000
@@ -93,11 +92,9 @@ Signed-off-by: ZagWrt <zagwrt@localhost>
 +CONFIG_CMD_UBIFS=y
 +CONFIG_OF_UPSTREAM=y
 +CONFIG_ENV_OVERWRITE=y
-+CONFIG_ENV_IS_IN_UBI=y
-+CONFIG_ENV_REDUNDANT=y
-+CONFIG_ENV_UBI_PART="ubi"
-+CONFIG_ENV_UBI_VOLUME="ubootenv"
-+CONFIG_ENV_UBI_VOLUME_REDUND="ubootenv2"
++CONFIG_ENV_IS_NOWHERE=y
++# CONFIG_ENV_IS_IN_UBI is not set
++# CONFIG_ENV_REDUNDANT is not set
 +CONFIG_ENV_RELOC_GD_ENV_ADDR=y
 +CONFIG_ENV_USE_DEFAULT_ENV_TEXT_FILE=y
 +CONFIG_ENV_DEFAULT_ENV_TEXT_FILE="defenvs/an7581_gemtek_xg2010g_env"
@@ -170,7 +167,7 @@ Signed-off-by: ZagWrt <zagwrt@localhost>
 @@ -0,0 +1,24 @@
 +ipaddr=192.168.0.1
 +serverip=192.168.0.205
-+loadaddr=0x81800000
++loadaddr=0x88000000
 +console=earlycon console=ttyS0,115200n8
 +bootcmd=run boot_ubi
 +bootconf=config-1
@@ -185,8 +182,8 @@ Signed-off-by: ZagWrt <zagwrt@localhost>
 +bootmenu_1=Boot recovery/initramfs via TFTP.=run boot_tftp ; run bootmenu_confirm_return
 +bootmenu_2=Boot production system from UBI.=run boot_production ; run bootmenu_confirm_return
 +bootmenu_3=Reboot.=reset
-+boot_default=run bootcmd ; run boot_tftp_forever
-+boot_ubi=ubi part ubi && run boot_production ; run boot_tftp_forever
++boot_default=run bootcmd
++boot_ubi=ubi part ubi && run boot_production
 +boot_production=led $bootled_status on ; ubi read $loadaddr fit && iminfo $loadaddr && bootm $loadaddr#$bootconf ; led $bootled_status off
 +boot_tftp=tftpboot $loadaddr $bootfile && iminfo $loadaddr && bootm $loadaddr#$bootconf
 +boot_tftp_forever=led $bootled_status on ; while true ; do run boot_tftp ; sleep 1 ; done

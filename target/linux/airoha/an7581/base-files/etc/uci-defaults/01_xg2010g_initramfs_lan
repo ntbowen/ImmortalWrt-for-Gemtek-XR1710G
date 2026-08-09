@@ -1,0 +1,109 @@
+#!/bin/sh
+# Recovery initramfs LAN bootstrap for Gemtek XG2010G
+# This script only runs in initramfs (tmpfs/rootfs/ramfs).
+
+ROOTFS_TYPE=$(/bin/mount | awk '($3 == "/") {print $5}')
+case "$ROOTFS_TYPE" in
+	tmpfs|rootfs|ramfs) ;;
+	*) exit 0 ;;
+esac
+
+mkdir -p /etc/config
+
+# Ensure a minimal network config with br-lan
+if [ ! -f /etc/config/network ]; then
+	cat > /etc/config/network <<'EOF'
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'lan1'
+	list ports 'lan4'
+
+config interface 'lan'
+	option proto 'static'
+	option ipaddr '192.168.0.1'
+	option netmask '255.255.255.0'
+	option device 'br-lan'
+EOF
+fi
+
+# Ensure a minimal DHCP config so clients can get an IP
+if [ ! -f /etc/config/dhcp ]; then
+	cat > /etc/config/dhcp <<'EOF'
+config dnsmasq
+	option domainneeded '1'
+	option boguspriv '1'
+	option localise_queries '1'
+	option rebind_protection '1'
+	option local '/lan/'
+	option domain 'lan'
+	option expandhosts '1'
+	option nonegcache '0'
+	option authoritative '1'
+	option readethers '1'
+	option leasefile '/tmp/dhcp.leases'
+	option resolvfile '/tmp/resolv.conf.d/resolv.conf.auto'
+
+config dhcp 'lan'
+	option interface 'lan'
+	option start '100'
+	option limit '150'
+	option leasetime '12h'
+
+config dhcp 'wan'
+	option interface 'wan'
+	option ignore '1'
+EOF
+fi
+
+# Ensure firewall allows input on the lan zone
+if [ ! -f /etc/config/firewall ]; then
+	cat > /etc/config/firewall <<'EOF'
+config defaults
+	option syn_flood '1'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config zone
+	option name 'lan'
+	list network 'lan'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'wan'
+	list network 'wan'
+	list network 'wan6'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'DROP'
+	option masq '1'
+	option mtu_fix '1'
+
+config forwarding
+	option src 'lan'
+	option dest 'wan'
+EOF
+fi
+
+uci commit
+
+# Apply network configuration
+/etc/init.d/network restart
+
+# Make sure key services are running for LuCI/DHCP
+for svc in dnsmasq rpcd uhttpd; do
+	/etc/init.d/$svc start 2>/dev/null || true
+	sleep 1
+	/etc/init.d/$svc restart 2>/dev/null || true
+done
+
+/etc/init.d/firewall restart 2>/dev/null || true

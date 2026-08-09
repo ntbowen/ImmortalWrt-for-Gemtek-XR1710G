@@ -185,6 +185,7 @@ define Device/gemtek_xg2010g-ubi
   KERNEL_INITRAMFS_SUFFIX := -recovery.itb
   IMAGES := sysupgrade.itb
   IMAGE/sysupgrade.itb := append-kernel | fit gzip $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb external-static-with-rootfs | append-metadata
+  KERNEL_LOADADDR := 0x91000000
   ARTIFACTS := chainload-uboot.itb
   ARTIFACT/chainload-uboot.itb := an7581-chainloader gemtek_xg2010g
   SOC := an7581

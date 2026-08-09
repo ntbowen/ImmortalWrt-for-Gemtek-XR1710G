@@ -123,19 +123,6 @@
 		};
 	};
 
-	uart2_pins: uart2-pins {
-		mux {
-			function = "uart";
-			groups = "uart2";
-		};
-	};
-
-	hsuart_pins: hsuart-pins {
-		mux {
-			function = "uart";
-			groups = "hsuart";
-		};
-	};
 };
 
 &snfi {
@@ -339,14 +326,16 @@
 	label = "lan4";
 };
 
+&cpufreq {
+	reg = <0x0 0x1FA20000 0x0 0x2C0
+	       0x0 0x1EFBE000 0x0 0x800>;
+	reg-names = "chip-scu", "mcucfg";
+};
+
 &uart2 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart2_pins>;
+	status = "disabled";
 };
 
 &hsuart3 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&hsuart_pins>;
+	status = "disabled";
 };
