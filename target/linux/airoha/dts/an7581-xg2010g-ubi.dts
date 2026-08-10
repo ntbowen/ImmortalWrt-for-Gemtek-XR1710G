@@ -237,6 +237,47 @@
 
 &eth {
 	status = "okay";
+
+	/* GDM3 is fed by the XSI arbiter from the two free PCIe SerDes
+	 * lanes (no WiFi on the XG2010G).  phy8 (LAN2, RTL8261BE 10G) and
+	 * en8811 (LAN3, EN8811HN 2.5G) attach to GDM3 as two separate
+	 * net_devices via the airoha,eth-port child binding:
+	 * nbq 4 -> PCIe0 SerDes, nbq 5 -> PCIe1 SerDes. */
+	gdm3: ethernet@3 {
+		compatible = "airoha,eth-mac";
+		reg = <3>;
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		lan2_port: eth-port@4 {
+			compatible = "airoha,eth-port";
+			reg = <4>;
+
+			managed = "in-band-status";
+			phy-handle = <&phy8>;
+			phy-mode = "usxgmii";
+			pcs-handle = <&pcie_pcs 0>;
+
+			nvmem-cells = <&lan_mac 1>;
+			nvmem-cell-names = "mac-address";
+			openwrt,netdev-name = "lan2";
+		};
+
+		lan3_port: eth-port@5 {
+			compatible = "airoha,eth-port";
+			reg = <5>;
+
+			phy-handle = <&en8811>;
+			phy-mode = "2500base-x";
+			pcs-handle = <&pcie_pcs 1>;
+
+			nvmem-cells = <&lan_mac 2>;
+			nvmem-cell-names = "mac-address";
+			openwrt,netdev-name = "lan3";
+		};
+	};
 };
 
 &pon_pcs {
@@ -264,6 +305,21 @@
 };
 
 &eth_pcs {
+	status = "okay";
+};
+
+/* The two on-board PCIe SerDes lanes are free (no WiFi on the XG2010G),
+ * so they are repurposed as Ethernet SerDes via the pcie_pcs provider and
+ * the XSI arbiter to feed GDM3 (lan2/lan3 below).  The standalone PCIe PHY
+ * driver is disabled: it exclusively claims the same PMA register region as
+ * pcie_pcs (pcs_ana/pcs_pma0/pcs_pma1) and only does PCIe-specific analog
+ * calibration, which would make pcie_pcs probe fail with -EBUSY.  The
+ * airoha-pcs driver performs the ethernet SerDes PLL bringup itself. */
+&pciephy {
+	status = "disabled";
+};
+
+&pcie_pcs {
 	status = "okay";
 };
 
@@ -301,11 +357,24 @@
 			rx-polarity = <PHY_POL_INVERT>;
 		};
 
-		/* phy8 (2nd RTL8261BE, panel LAN2) and en8811 (EN8811HN,
-		 * panel LAN3) have no available GDM/PCS path in this
-		 * configuration and are disabled. They could only be brought
-		 * up via the internal switch's SerDes extension ports, which
-		 * the upstream mt7530 driver does not yet support. */
+		/* LAN2: 2nd RTL8261BE (10G copper).  Wired to GDM3 via the XSI
+		 * arbiter on the PCIe0 SerDes lane (see gdm3/eth-port@4). */
+		phy8: ethernet-phy@8 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <8>;
+			reset-gpios = <&en7581_pinctrl 27 GPIO_ACTIVE_LOW>;
+			reset-assert-us = <200000>;
+			reset-deassert-us = <200000>;
+			tx-polarity = <PHY_POL_INVERT>;
+			rx-polarity = <PHY_POL_INVERT>;
+		};
+
+		/* LAN3: EN8811HN (2.5G copper).  Wired to GDM3 via the XSI
+		 * arbiter on the PCIe1 SerDes lane (see gdm3/eth-port@5). */
+		en8811: ethernet-phy@f {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <15>;
+		};
 	};
 };
 
