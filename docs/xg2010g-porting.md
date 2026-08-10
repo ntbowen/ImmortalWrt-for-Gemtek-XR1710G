@@ -52,17 +52,19 @@
 ### 2.2 XG2010G 的 GDM 分配
 
 ```text
-PON (EN7573AN)   ── pon_pcs(XFI)  ──────────────► GDM2  → wan
-LAN1 phy5(10G)   ── eth_pcs(XSI_ETH) ───────────► GDM4  → lan1
-LAN2 phy8(10G)   ── PCIe1 SerDes ──┐
-                                    ├─ XSI arbiter ► GDM3 → lan2 / lan3
-LAN3 en8811(2.5G)── PCIe0 SerDes ──┘                     (两个 netdev)
-LAN4 (内部 1G)   ── 内部 GSW port4 ─────────────────► GDM1  → lan4
+PON (EN7573AN)   ── pon_pcs(XFI)                ──► GDM2  → wan
+LAN1 phy5(10G)   ── eth_pcs(XSI_ETH) ──┐
+                                        ├─ XSI arbiter ► GDM4 → lan1 + lan3
+LAN3 en8811(2.5G)── USB1 SerDes(HSGMII)─┘                (两个 netdev)
+LAN2 phy8(10G)   ── PCIe1 SerDes(USXGMII)── XSI arbiter ► GDM3 → lan2
+LAN4 (内部 1G)   ── 内部 GSW port4 ────────────────────► GDM1  → lan4
 ```
 
 ### 2.3 PCIe SerDes 复用为以太网（无 WiFi 时）
 
-XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键事实：
+XG2010G 没有 WiFi，PCIe/USB SerDes 空闲，可复用为以太网。SerDes 路由已由厂商
+`sys serdes` 工具（见 §7.4）确认：phy8/LAN2 走 PCIe1(USXGMII)、en8811/LAN3 走
+USB1(HSGMII)。关键事实：
 
 - **PCIe SerDes 跑以太网最高支持 USXGMII（10G）**——实测 phy8 用 10G 对端能 link 到 10G。
   （曾经误判"只能 2.5G/HSGMII"，那是因为把 lane 接错了，不是模式问题。）
@@ -75,26 +77,20 @@ XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键
 参考配置（`an7581-xg2010g-ubi.dts`）：
 
 ```dts
-&pcie_pcs { status = "okay"; };      // PCIe SerDes 复用为以太网
-&pciephy { status = "disabled"; };   // 见 §6.2 的冲突
+&pcie_pcs { status = "okay"; };      // phy8/LAN2 用 PCIe1 SerDes
+&usb_pcs  { status = "okay"; };      // en8811/LAN3 用 USB1 SerDes
+&pciephy  { status = "disabled"; };  // 见 §6.2 的冲突
 
 &eth {
     status = "okay";
+
+    /* GDM3: PCIe1 SerDes → phy8 (LAN2) */
     gdm3: ethernet@3 {
         compatible = "airoha,eth-mac";
         reg = <3>;
         #address-cells = <1>;
         #size-cells = <0>;
 
-        eth-port@4 {                 /* nbq=4 → PCIe0 */
-            compatible = "airoha,eth-port";
-            reg = <4>;
-            phy-handle = <&en8811>;
-            phy-mode = "2500base-x";
-            pcs-handle = <&pcie_pcs 0>;
-            openwrt,netdev-name = "lan3";
-            ...
-        };
         eth-port@5 {                 /* nbq=5 → PCIe1 */
             compatible = "airoha,eth-port";
             reg = <5>;
@@ -103,6 +99,34 @@ XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键
             phy-mode = "usxgmii";
             pcs-handle = <&pcie_pcs 1>;
             openwrt,netdev-name = "lan2";
+            ...
+        };
+    };
+
+    /* GDM4: ETH SerDes → phy5 (LAN1)，USB1 SerDes → en8811 (LAN3) */
+    gdm4: ethernet@4 {
+        compatible = "airoha,eth-mac";
+        reg = <4>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        eth-port@0 {                 /* nbq=0 → ETH */
+            compatible = "airoha,eth-port";
+            reg = <0>;
+            managed = "in-band-status";
+            phy-handle = <&phy5>;
+            phy-mode = "usxgmii";
+            pcs-handle = <&eth_pcs>;
+            openwrt,netdev-name = "lan1";
+            ...
+        };
+        eth-port@1 {                 /* nbq=1 → USB1 */
+            compatible = "airoha,eth-port";
+            reg = <1>;
+            phy-handle = <&en8811>;
+            phy-mode = "2500base-x";
+            pcs-handle = <&usb_pcs>;
+            openwrt,netdev-name = "lan3";
             ...
         };
     };
@@ -267,6 +291,16 @@ dmesg | grep -iE "rtl8261|en8811"  # 看驱动绑定/固件版本
 - 刷机前备份：厂商 env（`cat /dev/mtd1`）、chainloader env（`fw_printenv`）、`/etc/config`、
   `dsd`/`art` 分区。参考 `backups/xg2010g-pre-stock/RESTORE.md`。
 
+> ⚠️ 两个实测过的坑：
+> 1. **刷 stock 会覆盖 UBI 区（mtd3）**。stock 的 UBI 会顶掉 chainloader 所在的
+>    `0x8600000`（md 读出来是 `UBI#` magic 而不是 FIT）→ 回 OpenWrt 时要先用厂商
+>    U-Boot 把 chainloader 重新 `flash write` 回 `0x8600000`，再 boot recovery。
+> 2. **recovery 的网络依赖 UBI 里的 factory volume（存 MAC）**。UBI 被 stock 写坏后
+>    recovery 挂不上 UBI → 拿不到 MAC → `airoha_eth`/`switch` 一直 `-EPROBE_DEFER`
+>    → 整个网络起不来。救法：recovery 串口里 `ubiformat /dev/mtd3 -y && ubiattach -m 3`
+>    重建 UBI，再按 `85_xg2010g_factory` 的逻辑从 `dsd` 重建 factory volume，然后
+>    `echo <dev> > /sys/bus/platform/drivers_probe` 强制网卡重新 probe。
+
 ### 7.4 厂商固件（stock）作为参考
 
 - stock 是 Tclinux（厂商 OpenWrt fork），专有 `frame_engine` 驱动，接口模型
@@ -275,6 +309,23 @@ dmesg | grep -iE "rtl8261|en8811"  # 看驱动绑定/固件版本
 - 厂商 bootargs 的 `serdes_*`（`serdes_pon/serdes_ethernet/serdes_wifi1/serdes_wifi2/serdes_usb1/serdes_usb2`）
   是它的 SerDes 路由表；`serdes_ethernet=421`=网口、`411`=光口。
 - 厂商 U-Boot 用 **EN8811H 做 TFTP 网口**，证明 LAN3 的 SerDes 通路硬件正常。
+- **`sys serdes` 工具**（stock 上直接可用，不用 devmem）：`sys serdes` 读当前每条
+  SerDes 的模式，`sys serdes -h` 打印完整的 sel/I/F 映射表。配合
+  rootfs 里的 `usr/share/gPower/hooks/parseSysSerdes.sh`（映射表）和
+  `isSerdesSync.sh`（默认模板），加上 bootargs 的 `serdes_*`，就能**确定性地解码出
+  每个面板口走哪条 SerDes、什么模式**，不用再盲猜。XG2010G 解码结果：
+
+  | SerDes 口 | bootarg | 模式 | 接到 |
+  | --- | --- | --- | --- |
+  | SerDes-PON | `serdes_pon=000` | PON | GDM2（wan） |
+  | SerDes-Ethernet | `serdes_ethernet=421` | USXGMII | eth_pcs → phy5（LAN1） |
+  | SerDes-WiFi1 | `serdes_wifi1=005` | NONE | PCIe0 空闲 |
+  | SerDes-WiFi2 | `serdes_wifi2=413` | USXGMII | PCIe1 → phy8（LAN2） |
+  | SerDes-USB1 | `serdes_usb1=111` | HSGMII/an8811 | USB1 → en8811（LAN3） |
+  | SerDes-USB2 | `serdes_usb2=000` | USB3 | 空闲 |
+
+- stock 提取的 rootfs 里还有厂商驱动模块（`hsgmii_lan.ko` 等，带符号，源码路径
+  `linux-airoha_en7581/hsgmii_lan/`），可反汇编看 SerDes bringup 的寄存器写序。
 
 ---
 
