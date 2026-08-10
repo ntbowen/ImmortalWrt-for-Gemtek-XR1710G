@@ -168,9 +168,9 @@ ubiattach -m 3
 wan=$(strings /dev/mtdblock2 | sed -n 's/^wan_mac=//p')
 lan=$(strings /dev/mtdblock2 | sed -n 's/^lan_mac=//p')
 hex2bin() {
-	for b in $(echo "$1" | tr ':' ' '); do
-		printf "\\$(printf '%03o' 0x$b)"
-	done
+    for b in $(echo "$1" | tr ':' ' '); do
+        printf "\\$(printf '%03o' 0x$b)"
+    done
 }
 dd if=/dev/zero of=/tmp/factory.bin bs=1024 count=28 2>/dev/null
 hex2bin "$wan" | dd of=/tmp/factory.bin bs=1 seek=20480 conv=notrunc 2>/dev/null
@@ -249,7 +249,7 @@ ECNT> saveenv
 ## 9. 分区布局速查
 
 | 分区 | 偏移 | 大小 | 内容 | 刷 stock 影响 |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | mtd0 bootloader | 0x000000 | 0x200000 | 厂商 U-Boot | 不动 |
 | mtd1 uenv | 0x200000 | 0x200000 | U-Boot 环境 | 不动 |
 | mtd2 dsd | 0x400000 | 0x200000 | MAC/出厂数据 | 不动 |
