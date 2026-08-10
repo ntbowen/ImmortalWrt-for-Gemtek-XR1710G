@@ -51,7 +51,7 @@
 
 ### 2.2 XG2010G 的 GDM 分配
 
-```
+```text
 PON (EN7573AN)   ── pon_pcs(XFI)  ──────────────► GDM2  → wan
 LAN1 phy5(10G)   ── eth_pcs(XSI_ETH) ───────────► GDM4  → lan1
 LAN2 phy8(10G)   ── PCIe1 SerDes ──┐
@@ -79,33 +79,33 @@ XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键
 &pciephy { status = "disabled"; };   // 见 §6.2 的冲突
 
 &eth {
-	status = "okay";
-	gdm3: ethernet@3 {
-		compatible = "airoha,eth-mac";
-		reg = <3>;
-		#address-cells = <1>;
-		#size-cells = <0>;
+    status = "okay";
+    gdm3: ethernet@3 {
+        compatible = "airoha,eth-mac";
+        reg = <3>;
+        #address-cells = <1>;
+        #size-cells = <0>;
 
-		eth-port@4 {                 /* nbq=4 → PCIe0 */
-			compatible = "airoha,eth-port";
-			reg = <4>;
-			phy-handle = <&en8811>;
-			phy-mode = "2500base-x";
-			pcs-handle = <&pcie_pcs 0>;
-			openwrt,netdev-name = "lan3";
-			...
-		};
-		eth-port@5 {                 /* nbq=5 → PCIe1 */
-			compatible = "airoha,eth-port";
-			reg = <5>;
-			managed = "in-band-status";
-			phy-handle = <&phy8>;
-			phy-mode = "usxgmii";
-			pcs-handle = <&pcie_pcs 1>;
-			openwrt,netdev-name = "lan2";
-			...
-		};
-	};
+        eth-port@4 {                 /* nbq=4 → PCIe0 */
+            compatible = "airoha,eth-port";
+            reg = <4>;
+            phy-handle = <&en8811>;
+            phy-mode = "2500base-x";
+            pcs-handle = <&pcie_pcs 0>;
+            openwrt,netdev-name = "lan3";
+            ...
+        };
+        eth-port@5 {                 /* nbq=5 → PCIe1 */
+            compatible = "airoha,eth-port";
+            reg = <5>;
+            managed = "in-band-status";
+            phy-handle = <&phy8>;
+            phy-mode = "usxgmii";
+            pcs-handle = <&pcie_pcs 1>;
+            openwrt,netdev-name = "lan2";
+            ...
+        };
+    };
 };
 ```
 
@@ -138,7 +138,7 @@ XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键
 厂商 U-Boot（2014.04 AXON 1.7）**bootm 无法直接加载现代 ARM64 Linux FIT**（会复位）。
 解决：用 mainline U-Boot 作 chainloader，包成 FIT 让厂商 bootm 加载跳转。
 
-```
+```text
 厂商 U-Boot (0x0)
    │  bootcmd: flash read 0x8600000 0x50000 0x81800000; bootm 0x81800000
    ▼
