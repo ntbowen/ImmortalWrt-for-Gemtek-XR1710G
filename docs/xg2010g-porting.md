@@ -9,7 +9,7 @@
 ## 1. 硬件概览
 
 | 项 | 规格 |
-|---|---|
+| --- | --- |
 | SoC | Airoha AN7581（ARM64，4× Cortex-A53，最高 1.2GHz） |
 | 内存 | 1 GiB DDR4 |
 | Flash | Winbond W25N04K SPI-NAND，512 MiB（128 KiB block / 2048 B page） |
@@ -21,7 +21,7 @@
 ### 面板口 ↔ PHY ↔ 速率（实测确认）
 
 | 面板口 | 速率 | PHY 型号 | MDIO 地址 | reset GPIO |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | LAN1 | 10G | RTL8261N #1 | 5 | 29 (active low) |
 | LAN2 | 10G | RTL8261N #2 | 8 | 27 (active low) |
 | LAN3 | 2.5G | EN8811HN | 15 (0xf) | 无（自生复位） |
@@ -40,7 +40,7 @@
 前端可接不同的 SerDes。**dtsi 里默认只有 gdm1/gdm2/gdm4，没有 gdm3**（gdm3 要板级自己加）。
 
 | GDM | 可接的 SerDes 源 | 用途 |
-|---|---|---|
+| --- | --- | --- |
 | GDM1 | 内部 GSW（switch） | 固定，无 SerDes |
 | GDM2 | `pon_pcs`（XFI SerDes） | PON / WAN |
 | GDM3 | **PCIe0 / PCIe1**（经 XSI 仲裁器） | 复用 PCIe SerDes 作以太网 |
@@ -122,7 +122,7 @@ XG2010G 没有 WiFi，两条 PCIe SerDes 空闲，可复用为以太网。关键
   ⚠️ 注意是 `scuclk`（0x1fb00000），不是 `chip_scu`（syscon @ 0x1fa20000），别读错地址。
 
 | 位域 | 含义 | 取值 |
-|---|---|---|
+| --- | --- | --- |
 | bits[14:13] `PCIE_XSI0_SEL` | PCIe0 lane 模式 | 1=USXGMII, 2=HSGMII |
 | bits[12:11] `PCIE_XSI1_SEL` | PCIe1 lane 模式 | 1=USXGMII, 2=HSGMII |
 | bits[10:9]  `PON_XSI_SEL` | PON lane 模式 | 1=USXGMII, 2=HSGMII |
@@ -155,7 +155,7 @@ OpenWrt（UBI fit volume）
 ### Flash 布局（SPI-NAND）
 
 | MTD | 名称 | 偏移 | 大小 | 内容 |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | mtd0 | bootloader | 0x0 | 2 MiB | 厂商 U-Boot |
 | mtd1 | uenv | 0x200000 | 2 MiB | 厂商 U-Boot env（**非标准 CRC**，fw_printenv 读不了） |
 | mtd2 | dsd | 0x400000 | 2 MiB | 出厂数据（MAC 地址，据此生成 factory volume） |
@@ -172,7 +172,7 @@ OpenWrt（UBI fit volume）
 厂商 stock 认出的 GPIO 灯：
 
 | 厂商 label | 含义 |
-|---|---|
+| --- | --- |
 | `sts_red` / `sts_green` / `sts_blue` / `sts_white` | 主机状态灯（多色） |
 | `pon_act_green` / `pon_lnk_green` / `pon_lnk_red` | PON 状态灯 |
 | `lan_led_green` / `lan_led_yellow` | 单个 LAN 指示灯 |
@@ -189,7 +189,7 @@ OpenWrt（UBI fit volume）
 **不在 `/sys/class/leds`**，软件要配的是 PHY 的 LED 模式寄存器（哪个 LED=link/act/速率）：
 
 | 口 | PHY | 驱动 | LED 可控性 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | LAN1/LAN2 | RTL8261N | `realtek`（厂商驱动 realtek_main.c + phy_patch_rtl826x.c） | 有 LED 寄存器，需直接写/补驱动 |
 | LAN3 | EN8811HN | `air_en8811h` | 完整 hw_control（`air_led_hw_control_set`），支持 link/act 硬件自动 |
 | LAN4 | 内部 GSW PHY | `mtk-ge-soc` | 完整支持（`mt798x_phy_led_*`），可走内核 PHY-LED 框架 |
