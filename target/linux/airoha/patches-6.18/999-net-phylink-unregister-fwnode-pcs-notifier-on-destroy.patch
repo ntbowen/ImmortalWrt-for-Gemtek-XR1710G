@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OpenWrt Builder <builder@openwrt.org>
+Date: Mon, 10 Aug 2026 00:00:00 +0000
+Subject: [PATCH] net: phylink: unregister fwnode PCS notifier on destroy
+
+phylink_create() registers pl->fwnode_pcs_nb into the global
+fwnode_pcs_notify_list when the config has pcs_interfaces, but
+phylink_destroy() never unregisters it before freeing the phylink
+instance.
+
+This is fatal for drivers that tear down and recreate phylink instances
+across probe deferrals (e.g. airoha_eth calling phylink_destroy() from
+its probe error path on -EPROBE_DEFER): the destroyed notifier block
+stays linked in the chain pointing at freed memory, and the next
+register_fwnode_pcs_notifier() walks into it and crashes.
+
+Introduce unregister_fwnode_pcs_notifier() and call it from
+phylink_destroy() so the notifier is removed before the phylink instance
+is freed.
+
+---
+ include/linux/pcs/pcs.h   | 7 +++++++
+ drivers/net/pcs/pcs.c     | 6 ++++++
+ drivers/net/phy/phylink.c | 3 +++
+ 3 files changed, 16 insertions(+)
+
+--- a/include/linux/pcs/pcs.h
++++ b/include/linux/pcs/pcs.h
+@@ -22,6 +22,8 @@
+  */
+ int register_fwnode_pcs_notifier(struct notifier_block *nb);
+ 
++int unregister_fwnode_pcs_notifier(struct notifier_block *nb);
++
+ /**
+  * fwnode_pcs_get - Retrieves a PCS from a firmware node
+  * @fwnode: firmware node
+@@ -79,6 +81,11 @@
+ {
+ 	return -EOPNOTSUPP;
+ }
++
++static inline int unregister_fwnode_pcs_notifier(struct notifier_block *nb)
++{
++	return -EOPNOTSUPP;
++}
+ 
+ static inline struct phylink_pcs *fwnode_pcs_get(struct fwnode_handle *fwnode,
+ 						 int index)
+--- a/drivers/net/pcs/pcs.c
++++ b/drivers/net/pcs/pcs.c
+@@ -30,6 +30,12 @@
+ }
+ EXPORT_SYMBOL_GPL(register_fwnode_pcs_notifier);
+ 
++int unregister_fwnode_pcs_notifier(struct notifier_block *nb)
++{
++	return blocking_notifier_chain_unregister(&fwnode_pcs_notify_list, nb);
++}
++EXPORT_SYMBOL_GPL(unregister_fwnode_pcs_notifier);
++
+ struct phylink_pcs *fwnode_pcs_simple_get(struct fwnode_reference_args *pcsspec,
+ 					  void *data)
+ {
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -2195,6 +2195,9 @@
+ 	list_for_each_entry_safe(pcs, tmp, &pl->pcs_list, list)
+ 		list_del(&pcs->list);
+ 
++	if (!phy_interface_empty(pl->config->pcs_interfaces))
++		unregister_fwnode_pcs_notifier(&pl->fwnode_pcs_nb);
++
+ 	cancel_work_sync(&pl->resolve);
+ 	kfree(pl);
+ }
